@@ -1911,9 +1911,9 @@ Error HeifContext::encode_image_as_hevc(std::shared_ptr<HeifPixelImage> image,
   // if image size was rounded up to even size, add a 'clap' box to crop the
   // padding border away
 
-  if (options->macOS_compatibility_workaround == false) {
-    if (out_image->get_width() != encoded_width ||
-        out_image->get_height() != encoded_height) {
+  if (out_image->get_width() != encoded_width ||
+      out_image->get_height() != encoded_height) {
+    if (options->macOS_compatibility_workaround == false) {
       m_heif_file->add_clap_property(image_id,
                                      out_image->get_width(),
                                      out_image->get_height(),
@@ -1921,39 +1921,40 @@ Error HeifContext::encode_image_as_hevc(std::shared_ptr<HeifPixelImage> image,
                                      encoded_height);
 
       m_heif_file->add_ispe_property(image_id, out_image->get_width(), out_image->get_height());
+    } else {
+      // --- wrap the encoded image in a grid image just to apply the cropping
+
+      heif_item_id grid_image_id = m_heif_file->add_new_image("grid");
+      auto grid_image = std::make_shared<Image>(this, grid_image_id);
+
+      m_heif_file->add_iref_reference(grid_image_id, fourcc("dimg"), {image_id});
+
+      ImageGrid grid;
+      grid.set_num_tiles(1, 1);
+      grid.set_output_size(image->get_width(heif_channel_Y), image->get_height(heif_channel_Y));
+      auto grid_data = grid.write();
+
+      m_heif_file->append_iloc_data(grid_image_id, grid_data, 1);
+
+      m_heif_file->add_ispe_property(grid_image_id,
+                                     image->get_width(heif_channel_Y),
+                                     image->get_height(heif_channel_Y));
+
+      m_heif_file->add_ispe_property(image_id, encoded_width, encoded_height);
+
+
+      // --- now use the grid image instead of the original image
+
+      // hide the original image
+      m_heif_file->get_infe_box(image_id)->set_hidden_item(true);
+
+      out_image = grid_image;
+
+      // now use the grid image for all further property output
+      image_id = grid_image_id;
     }
-  }
-  else {
-    // --- wrap the encoded image in a grid image just to apply the cropping
-
-    heif_item_id grid_image_id = m_heif_file->add_new_image("grid");
-    auto grid_image = std::make_shared<Image>(this, grid_image_id);
-
-    m_heif_file->add_iref_reference(grid_image_id, fourcc("dimg"), {image_id});
-
-    ImageGrid grid;
-    grid.set_num_tiles(1, 1);
-    grid.set_output_size(image->get_width(heif_channel_Y), image->get_height(heif_channel_Y));
-    auto grid_data = grid.write();
-
-    m_heif_file->append_iloc_data(grid_image_id, grid_data, 1);
-
-    m_heif_file->add_ispe_property(grid_image_id,
-                                   image->get_width(heif_channel_Y),
-                                   image->get_height(heif_channel_Y));
-
-    m_heif_file->add_ispe_property(image_id, encoded_width, encoded_height);
-
-
-    // --- now use the grid image instead of the original image
-
-    // hide the original image
-    m_heif_file->get_infe_box(image_id)->set_hidden_item(true);
-
-    out_image = grid_image;
-
-    // now use the grid image for all further property output
-    image_id = grid_image_id;
+  } else {
+    m_heif_file->add_ispe_property(image_id, out_image->get_width(), out_image->get_height());
   }
 
   // --- if there is an alpha channel, add it as an additional image

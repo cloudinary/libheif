@@ -1161,32 +1161,8 @@ Error HeifContext::decode_image_planar(heif_item_id ID,
 
       auto clap = std::dynamic_pointer_cast<Box_clap>(property.property);
       if (clap) {
-        std::shared_ptr<HeifPixelImage> clap_img;
-
-        int img_width = img->get_width();
-        int img_height = img->get_height();
-        assert(img_width >= 0);
-        assert(img_height >= 0);
-
-        int left = clap->left_rounded(img_width);
-        int right = clap->right_rounded(img_width);
-        int top = clap->top_rounded(img_height);
-        int bottom = clap->bottom_rounded(img_height);
-
-        if (left < 0) { left = 0; }
-        if (top < 0) { top = 0; }
-
-        if (right >= img_width) { right = img_width - 1; }
-        if (bottom >= img_height) { bottom = img_height - 1; }
-
-        if (left >= right ||
-            top >= bottom) {
-          return Error(heif_error_Invalid_input,
-                       heif_suberror_Invalid_clean_aperture);
-        }
-
         std::shared_ptr<HeifPixelImage> cropped_img;
-        error = img->crop(left, right, top, bottom, cropped_img);
+        error = img->crop(0, clap->get_width_rounded() - 1, 0, clap->get_height_rounded() - 1, cropped_img);
         if (error) {
           return error;
         }

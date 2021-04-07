@@ -804,10 +804,11 @@ void HeifFile::add_iref_reference(uint32_t type, heif_item_id from,
   m_iref_box->add_reference(type, from, to);
 }
 
-void HeifFile::set_auxC_property(heif_item_id id, std::string type)
+void HeifFile::set_auxC_property(heif_item_id id, std::string type, std::vector<uint8_t> subtype)
 {
   auto auxC = std::make_shared<Box_auxC>();
   auxC->set_aux_type(type);
+  auxC->set_aux_subtype(subtype);
 
   int index = m_ipco_box->append_child_box(auxC);
 

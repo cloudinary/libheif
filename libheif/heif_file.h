@@ -146,7 +146,7 @@ namespace heif {
     void add_iref_reference(heif_item_id from, uint32_t type,
                             std::vector<heif_item_id> to);
 
-    void set_auxC_property(heif_item_id id, std::string type);
+    void set_auxC_property(heif_item_id id, std::string type, std::vector<uint8_t> subtype);
 
     void set_color_profile(heif_item_id id, const std::shared_ptr<const color_profile> profile);
 
